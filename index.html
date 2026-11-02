@@ -1,0 +1,2007 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>工作台</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#6366f1">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="工作台">
+<style>
+/* ===== Reset & Base ===== */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f5f5f7;--surface:#fff;--surface-2:#fafafa;--surface-hover:#f3f4f6;
+  --primary:#6366f1;--primary-light:#eef2ff;--primary-dark:#4f46e5;
+  --text:#1a1a2e;--text-2:#6b7280;--text-3:#9ca3af;
+  --border:#e5e7eb;--border-light:#f0f0f2;
+  --green:#10b981;--green-light:#ecfdf5;
+  --amber:#f59e0b;--amber-light:#fffbeb;
+  --blue:#3b82f6;--blue-light:#eff6ff;
+  --purple:#8b5cf6;--purple-light:#f5f3ff;
+  --red:#ef4444;--red-light:#fef2f2;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.08);
+  --shadow-lg:0 12px 40px rgba(0,0,0,.12);
+  --radius:14px;--radius-sm:10px;--radius-xs:6px;
+  --sidebar-w:230px;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+}
+html,body{height:100%}
+body{font-family:var(--font);background:var(--bg);color:var(--text);overflow:hidden;font-size:14px;line-height:1.6}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,textarea{font-family:inherit;font-size:inherit;color:inherit;outline:none;border:none;background:none}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#9ca3af}
+
+/* ===== Layout ===== */
+.app{display:flex;height:100vh}
+.sidebar{
+  width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;padding:20px 14px;flex-shrink:0;z-index:10;
+}
+.logo{font-size:18px;font-weight:700;padding:6px 10px 20px;display:flex;align-items:center;gap:8px}
+.logo span{font-size:20px}
+.nav{display:flex;flex-direction:column;gap:3px}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);
+  font-size:14px;color:var(--text-2);transition:all .15s;font-weight:500;width:100%;text-align:left;
+}
+.nav-item:hover{background:var(--surface-hover);color:var(--text)}
+.nav-item.active{background:var(--primary-light);color:var(--primary);font-weight:600}
+.nav-item .icon{font-size:17px;width:22px;text-align:center}
+.nav-badge{margin-left:auto;font-size:11px;background:var(--border-light);color:var(--text-3);
+  padding:1px 7px;border-radius:20px;font-weight:600}
+.nav-item.active .nav-badge{background:var(--primary);color:#fff}
+.sidebar-footer{margin-top:auto;padding-top:16px;border-top:1px solid var(--border-light)}
+.sidebar-stat{padding:8px 12px;font-size:12px;color:var(--text-3);line-height:1.8}
+.sidebar-stat b{color:var(--text-2);font-weight:600}
+
+.main{flex:1;overflow-y:auto;position:relative}
+.view{display:none;padding:28px 36px;animation:fade .3s ease}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.view-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.view-header h1{font-size:24px;font-weight:700;letter-spacing:-.5px}
+.view-header .sub{font-size:13px;color:var(--text-3);margin-top:2px}
+
+/* ===== Buttons ===== */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:600;transition:all .15s;white-space:nowrap}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-dark);transform:translateY(-1px);box-shadow:0 4px 12px rgba(99,102,241,.3)}
+.btn-ghost{background:var(--surface);border:1px solid var(--border);color:var(--text-2)}
+.btn-ghost:hover{background:var(--surface-hover);color:var(--text);border-color:#d1d5db}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:var(--radius-xs)}
+.btn-icon{width:30px;height:30px;border-radius:var(--radius-xs);display:inline-flex;align-items:center;
+  justify-content:center;color:var(--text-3);transition:all .15s}
+.btn-icon:hover{background:var(--surface-hover);color:var(--text)}
+
+/* ===== Inspiration Grid ===== */
+.inspiration-controls{display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap}
+.search-box{flex:1;min-width:200px;position:relative}
+.search-box input{width:100%;padding:8px 14px 8px 34px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);font-size:13px}
+.search-box input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+.search-box::before{content:'🔍';position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:13px;opacity:.5}
+.filter-chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;
+  transition:all .15s;background:var(--surface);border:1px solid var(--border);color:var(--text-2)}
+.chip:hover{border-color:#d1d5db}
+.chip.active{background:var(--text);color:#fff;border-color:var(--text)}
+
+.inspiration-grid{columns:3;column-gap:14px}
+@media(max-width:1200px){.inspiration-grid{columns:2}}
+@media(max-width:768px){.inspiration-grid{columns:1}}
+
+.insp-card{
+  break-inside:avoid;margin-bottom:14px;background:var(--surface);border:1px solid var(--border-light);
+  border-radius:var(--radius);padding:16px;transition:all .2s;position:relative;cursor:default;
+}
+.insp-card:hover{border-color:var(--border);box-shadow:var(--shadow-md)}
+.insp-card .cat-bar{position:absolute;top:0;left:16px;right:16px;height:3px;border-radius:0 0 3px 3px;margin:0 -16px 0 -16px;width:calc(100% + 32px);border-radius:14px 14px 0 0}
+.insp-content{font-size:14px;line-height:1.65;color:var(--text);word-break:break-word;white-space:pre-wrap;margin-top:4px}
+.insp-meta{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
+.cat-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
+.tag-badge{font-size:11px;color:var(--text-3);background:var(--surface-2);padding:2px 8px;border-radius:20px}
+.insp-time{font-size:11px;color:var(--text-3);margin-left:auto}
+.insp-actions{position:absolute;top:8px;right:8px;display:flex;gap:2px;opacity:0;transition:opacity .15s}
+.insp-card:hover .insp-actions{opacity:1}
+.insp-star{position:absolute;top:10px;right:10px;font-size:14px;opacity:0;transition:opacity .15s;cursor:pointer}
+.insp-card.starred .insp-star{opacity:1}
+.insp-card:hover .insp-star{opacity:.4}
+.insp-star:hover{opacity:1!important}
+
+/* Category colors */
+.cat-idea .cat-bar{background:var(--amber)}
+.cat-idea .cat-badge{background:var(--amber-light);color:var(--amber)}
+.cat-goal .cat-bar{background:var(--blue)}
+.cat-goal .cat-badge{background:var(--blue-light);color:var(--blue)}
+.cat-note .cat-bar{background:var(--text-3)}
+.cat-note .cat-badge{background:var(--surface-2);color:var(--text-2)}
+.cat-question .cat-bar{background:var(--purple)}
+.cat-question .cat-badge{background:var(--purple-light);color:var(--purple)}
+
+/* ===== Projects ===== */
+.project-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.proj-card{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);
+  padding:20px;transition:all .2s;cursor:pointer;position:relative;overflow:hidden}
+.proj-card:hover{border-color:var(--border);box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.proj-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--primary)}
+.proj-card.s-idea::before{background:var(--text-3)}
+.proj-card.s-planning::before{background:var(--amber)}
+.proj-card.s-active::before{background:var(--green)}
+.proj-card.s-done::before{background:var(--purple)}
+.proj-title{font-size:16px;font-weight:700;margin-bottom:6px;padding-right:60px}
+.proj-desc{font-size:13px;color:var(--text-2);line-height:1.5;margin-bottom:14px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.proj-stats{display:flex;gap:16px;font-size:12px;color:var(--text-3);margin-bottom:12px}
+.proj-stats span{display:flex;align-items:center;gap:4px}
+.proj-progress{height:6px;background:var(--border-light);border-radius:3px;overflow:hidden;margin-bottom:10px}
+.proj-progress-bar{height:100%;border-radius:3px;transition:width .4s ease;background:var(--primary)}
+.proj-card.s-active .proj-progress-bar{background:var(--green)}
+.proj-card.s-done .proj-progress-bar{background:var(--purple)}
+.proj-footer{display:flex;align-items:center;justify-content:space-between}
+.status-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}
+.status-idea{background:var(--surface-2);color:var(--text-2)}
+.status-planning{background:var(--amber-light);color:var(--amber)}
+.status-active{background:var(--green-light);color:var(--green)}
+.status-done{background:var(--purple-light);color:var(--purple)}
+
+/* ===== Project Detail ===== */
+.detail-back{display:inline-flex;align-items:center;gap:6px;color:var(--text-2);font-size:13px;
+  font-weight:600;margin-bottom:16px;transition:color .15s}
+.detail-back:hover{color:var(--primary)}
+.detail-header{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);
+  padding:24px;margin-bottom:20px}
+.detail-title-row{display:flex;align-items:flex-start;gap:12px;margin-bottom:8px}
+.detail-title{flex:1;font-size:22px;font-weight:700;letter-spacing:-.3px}
+.detail-title-edit{flex:1;font-size:22px;font-weight:700;border-bottom:2px solid var(--primary);padding-bottom:2px}
+.detail-desc{color:var(--text-2);font-size:14px;line-height:1.6;margin-top:8px;min-height:20px;cursor:text;border-radius:6px;padding:4px 8px;margin-left:-8px;transition:background .15s}
+.detail-desc:hover{background:var(--surface-hover)}
+.detail-desc[contenteditable]:focus{background:var(--surface-hover);outline:1px solid var(--primary)}
+.detail-meta{display:flex;align-items:center;gap:16px;margin-top:16px;flex-wrap:wrap}
+.status-select{display:flex;gap:4px;background:var(--surface-2);border-radius:var(--radius-sm);padding:3px}
+.status-select button{padding:5px 12px;font-size:12px;font-weight:600;border-radius:var(--radius-xs);color:var(--text-2);transition:all .15s}
+.status-select button.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+.detail-progress{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)}
+.detail-progress .bar{width:120px;height:6px;background:var(--border-light);border-radius:3px;overflow:hidden}
+.detail-progress .bar-fill{height:100%;background:var(--primary);border-radius:3px;transition:width .4s}
+
+.detail-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+
+.detail-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.detail-cols{grid-template-columns:1fr}}
+.detail-col{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);padding:20px}
+.detail-col h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.detail-col h3 .count{font-size:12px;color:var(--text-3);font-weight:500}
+
+.item-list{display:flex;flex-direction:column;gap:6px}
+.item{
+  display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);
+  transition:all .15s;position:relative;
+}
+.item:hover{background:var(--surface-hover)}
+.item-check{width:18px;height:18px;border:2px solid var(--border);border-radius:5px;flex-shrink:0;
+  margin-top:1px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;color:#fff}
+.item-check:hover{border-color:var(--primary)}
+.item.adopted .item-check{background:var(--primary);border-color:var(--primary)}
+.item.adopted .item-check::after{content:'✓';font-size:12px;font-weight:700}
+.item-body{flex:1;min-width:0}
+.item-name{font-size:13px;line-height:1.5;color:var(--text)}
+.item:not(.adopted) .item-name{color:var(--text-3)}
+.item.adopted.completed .item-name{text-decoration:line-through;color:var(--text-3)}
+.item-cat{font-size:11px;color:var(--text-3);margin-top:2px}
+.item-actions{display:flex;gap:2px;opacity:0;transition:opacity .15s}
+.item:hover .item-actions{opacity:1}
+.item-task-check{width:16px;height:16px;border:1.5px solid var(--border);border-radius:4px;flex-shrink:0;
+  margin-top:2px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;color:#fff}
+.item-task-check:hover{border-color:var(--green)}
+.item.adopted.completed .item-task-check{background:var(--green);border-color:var(--green)}
+.item.adopted.completed .item-task-check::after{content:'✓';font-size:10px;font-weight:700}
+.item-delete{color:var(--text-3);font-size:14px;padding:2px 4px;opacity:.5;transition:all .15s}
+.item-delete:hover{color:var(--red);opacity:1}
+
+.add-item-row{display:flex;gap:6px;margin-top:10px}
+.add-item-row input{flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);
+  font-size:13px;background:var(--surface-2)}
+.add-item-row input:focus{border-color:var(--primary);background:var(--surface)}
+.add-item-row button{padding:7px 12px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--radius-xs);font-size:12px;font-weight:600;color:var(--text-2)}
+.add-item-row button:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+.detail-notes{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);
+  padding:20px;margin-top:16px}
+.detail-notes h3{font-size:15px;font-weight:700;margin-bottom:12px}
+.detail-notes textarea{width:100%;min-height:80px;resize:vertical;border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:12px;font-size:13px;line-height:1.6;background:var(--surface-2)}
+.detail-notes textarea:focus{border-color:var(--primary);background:var(--surface)}
+
+/* ===== FAB ===== */
+.fab{position:fixed;bottom:28px;right:28px;width:56px;height:56px;border-radius:50%;
+  background:var(--primary);color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 20px rgba(99,102,241,.4);z-index:100;transition:all .2s}
+.fab:hover{transform:scale(1.08) rotate(15deg);box-shadow:0 8px 28px rgba(99,102,241,.5)}
+.fab::after{content:'';position:absolute;width:56px;height:56px;border-radius:50%;
+  border:2px solid var(--primary);opacity:.3;animation:pulse 2s ease-out infinite}
+@keyframes pulse{0%{transform:scale(1);opacity:.3}100%{transform:scale(1.5);opacity:0}}
+
+/* ===== Modal ===== */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.25);backdrop-filter:blur(4px);
+  z-index:200;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.show{opacity:1;pointer-events:auto}
+.modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-48%) scale(.96);
+  background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-lg);
+  z-index:201;opacity:0;pointer-events:none;transition:all .2s;width:560px;max-width:92vw;max-height:85vh;overflow:auto}
+.modal.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border-light)}
+.modal-header h3{font-size:16px;font-weight:700}
+.modal-body{padding:22px}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end;gap:8px}
+
+.quick-input{width:100%;min-height:100px;resize:vertical;border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:14px;font-size:15px;line-height:1.6;background:var(--surface-2)}
+.quick-input:focus{border-color:var(--primary);background:var(--surface);box-shadow:0 0 0 3px var(--primary-light)}
+.input-hint{font-size:12px;color:var(--text-3);margin-top:8px;display:flex;align-items:center;gap:6px}
+.kbd{font-size:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:4px;
+  padding:1px 5px;font-weight:600;color:var(--text-2);font-family:monospace}
+.tag-input-row{display:flex;gap:6px;margin-top:10px;align-items:center;flex-wrap:wrap}
+.tag-input-row input{flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);font-size:13px;background:var(--surface-2)}
+.tag-input-row input:focus{border-color:var(--primary);background:var(--surface)}
+.tag-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:var(--primary-light);
+  color:var(--primary);border-radius:20px;font-size:12px;font-weight:600}
+.tag-pill .x{cursor:pointer;opacity:.6}
+.tag-pill .x:hover{opacity:1}
+
+/* New project modal */
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:6px}
+.form-group input,.form-group textarea{width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:10px 14px;font-size:14px;background:var(--surface-2)}
+.form-group input:focus,.form-group textarea:focus{border-color:var(--primary);background:var(--surface);box-shadow:0 0 0 3px var(--primary-light)}
+.form-group textarea{resize:vertical;min-height:80px;line-height:1.6}
+
+/* Import modal */
+.import-area{width:100%;min-height:200px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:12px;font-size:13px;line-height:1.6;background:var(--surface-2);font-family:monospace;resize:vertical}
+.import-area:focus{border-color:var(--primary);background:var(--surface)}
+.import-hint{font-size:12px;color:var(--text-3);margin-top:8px;line-height:1.6}
+.import-hint code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:11px}
+
+/* ===== Toast ===== */
+.toast-container{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:300;
+  display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{background:var(--text);color:#fff;padding:10px 20px;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);animation:toastIn .3s ease;display:flex;align-items:center;gap:8px}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* ===== Empty State ===== */
+.empty{text-align:center;padding:80px 20px;color:var(--text-3)}
+.empty .emoji{font-size:48px;margin-bottom:16px;opacity:.5}
+.empty h3{font-size:16px;font-weight:600;color:var(--text-2);margin-bottom:6px}
+.empty p{font-size:13px;line-height:1.6}
+.empty .kbd{margin:0 2px}
+
+/* ===== Sync View ===== */
+.sync-card{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);
+  padding:20px;margin-bottom:16px;max-width:640px}
+.sync-actions{display:flex;gap:8px;margin-top:4px}
+.sync-status{font-size:13px;color:var(--text-2);margin-top:14px;display:flex;align-items:center;gap:6px}
+.sync-status .dot{width:8px;height:8px;border-radius:50%;background:var(--text-3);flex-shrink:0}
+.sync-status.ok .dot{background:var(--green);box-shadow:0 0 0 3px var(--green-light)}
+.sync-status.err .dot{background:var(--red);box-shadow:0 0 0 3px var(--red-light)}
+.sync-status.busy .dot{background:var(--amber);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.3}}
+.sync-last{font-size:12px;color:var(--text-3);margin-top:6px}
+.guide-title{font-size:14px;font-weight:600;cursor:pointer;color:var(--text);padding:4px 0}
+.guide-steps{margin:14px 0 4px;padding-left:20px;font-size:13px;line-height:2;color:var(--text-2)}
+.guide-steps code,.guide-note code{background:var(--surface-2);padding:1px 6px;border-radius:4px;font-size:12px;font-family:monospace}
+.guide-steps pre{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-xs);
+  padding:8px 12px;font-size:12px;margin:6px 0;font-family:monospace;overflow-x:auto}
+.guide-note{font-size:13px;color:var(--text-2);margin-top:8px}
+.guide-steps a{color:var(--primary)}
+.sync-how{margin-top:0}
+
+/* ===== Responsive ===== */
+@media(max-width:768px){
+  .sidebar{display:none}
+  .view{padding:20px 16px;padding-bottom:96px}
+  .main{padding-bottom:0}
+
+  /* Bottom tabbar */
+  .mobile-tabbar{
+    position:fixed;left:0;right:0;bottom:0;z-index:150;
+    background:rgba(255,255,255,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border-top:1px solid var(--border);
+    display:flex;padding:6px 0 calc(6px + env(safe-area-inset-bottom));
+  }
+  .tab-btn{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+    padding:6px 0;font-size:11px;font-weight:600;color:var(--text-3);transition:color .15s;
+  }
+  .tab-btn .tab-icon{font-size:20px;line-height:1.2}
+  .tab-btn.active{color:var(--primary)}
+
+  /* FAB above tabbar */
+  .fab{bottom:calc(88px + env(safe-area-inset-bottom));right:18px;width:52px;height:52px;font-size:22px}
+  .fab::after{width:52px;height:52px}
+
+  /* Modal → bottom sheet */
+  .modal{top:auto;bottom:0;left:0;right:0;transform:translateY(100%);width:100%;max-width:100%;
+    max-height:88vh;border-radius:18px 18px 0 0;transition:transform .25s ease}
+  .modal.show{transform:translateY(0)}
+  .modal-footer{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+
+  /* Touch targets */
+  .btn-icon{width:36px;height:36px}
+  .insp-actions{opacity:1}
+  .item-actions{opacity:1}
+  .insp-star{opacity:.35}
+  .insp-card.starred .insp-star{opacity:1}
+  .quick-input{min-height:120px;font-size:16px}
+  .item-name,.item-cat{font-size:14px}
+  .add-item-row input{font-size:15px;padding:10px}
+  .add-item-row button{padding:10px 14px}
+
+  /* Toast above tabbar */
+  .toast-container{bottom:calc(100px + env(safe-area-inset-bottom))}
+}
+</style>
+
+<script src="https://beacon.cdn.qq.com/sdk/4.5.9/beacon_web.min.js"></script>
+<script>
+(function(){
+  try{
+    var beacon=new BeaconAction({
+      appkey:'0WEB06U85YBSLJNL',
+      versionCode:'1.0.0',
+      channelID:'share',
+      delay:1000,
+      sessionDuration:30*60*1000,
+      isOversea:false,
+      needReportRqdEvent:false
+    });
+    beacon.onDirectUserAction('preview_page_view',{
+      'url':location.href,
+      'referrer':document.referrer,
+      'title':document.title,
+      'sandbox_id':'72c32bfb9e9e414cbda391de9b9d7a1c'
+    });
+  }catch(e){}
+})();
+</script></head>
+<body>
+
+<div class="app">
+  <!-- ===== Sidebar ===== -->
+  <aside class="sidebar">
+    <div class="logo"><span>⚡</span> 工作台</div>
+    <nav class="nav">
+      <button class="nav-item active" data-view="inspirations">
+        <span class="icon">💡</span> 灵感库
+        <span class="nav-badge" id="nav-insp-count">0</span>
+      </button>
+      <button class="nav-item" data-view="projects">
+        <span class="icon">📋</span> 项目管理器
+        <span class="nav-badge" id="nav-proj-count">0</span>
+      </button>
+      <button class="nav-item" data-view="sync">
+        <span class="icon">☁️</span> 云同步
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-stat">
+        灵感 <b id="stat-insp">0</b> 条 · 项目 <b id="stat-proj">0</b> 个<br>
+        进行中 <b id="stat-active">0</b> · 已完成 <b id="stat-done">0</b>
+      </div>
+      <div class="sidebar-stat" id="sync-indicator" style="display:none"></div>
+    </div>
+  </aside>
+
+  <!-- ===== Main ===== -->
+  <main class="main">
+
+    <!-- ===== Inspiration View ===== -->
+    <div class="view active" id="view-inspirations">
+      <div class="view-header">
+        <div>
+          <h1>灵感库</h1>
+          <div class="sub">随时捕捉想法，自动分类整理</div>
+        </div>
+      </div>
+      <div class="inspiration-controls">
+        <div class="search-box">
+          <input type="text" id="insp-search" placeholder="搜索灵感...">
+        </div>
+        <div class="filter-chips" id="insp-filters">
+          <button class="chip active" data-cat="all">全部</button>
+          <button class="chip" data-cat="idea">💡 想法</button>
+          <button class="chip" data-cat="goal">🎯 目标</button>
+          <button class="chip" data-cat="question">❓ 问题</button>
+          <button class="chip" data-cat="note">📝 笔记</button>
+        </div>
+      </div>
+      <div class="inspiration-grid" id="insp-grid"></div>
+    </div>
+
+    <!-- ===== Project List View ===== -->
+    <div class="view" id="view-projects">
+      <div class="view-header">
+        <div>
+          <h1>项目管理器</h1>
+          <div class="sub">输入目标，AI 帮你拆解技能与行动步骤</div>
+        </div>
+        <button class="btn btn-primary" onclick="openNewProjectModal()">+ 新建项目</button>
+      </div>
+      <div class="project-grid" id="proj-grid"></div>
+    </div>
+
+    <!-- ===== Project Detail View ===== -->
+    <div class="view" id="view-detail">
+      <button class="detail-back" onclick="switchView('projects')">← 返回项目列表</button>
+      <div id="detail-container"></div>
+    </div>
+
+    <!-- ===== Sync View ===== -->
+    <div class="view" id="view-sync">
+      <div class="view-header">
+        <div>
+          <h1>☁️ 云同步</h1>
+          <div class="sub">手机和电脑之间的数据自动同步</div>
+        </div>
+      </div>
+
+      <div class="sync-card">
+        <div class="form-group">
+          <label>Supabase 项目地址（Project URL）</label>
+          <input type="text" id="sync-worker" placeholder="https://xxxx.supabase.co" value="">
+        </div>
+        <div class="form-group">
+          <label>anon public key / Publishable key（Settings → API 里找）</label>
+          <input type="text" id="sync-secret" placeholder="sb_publishable_... 或 eyJhbGciOi...（一长串）" value="">
+        </div>
+        <div class="sync-actions">
+          <button class="btn btn-primary" id="sync-connect-btn" onclick="saveSyncConfig()">保存并连接</button>
+          <button class="btn btn-ghost" onclick="Sync.syncNow(true)">立即同步</button>
+          <button class="btn btn-ghost" onclick="diagnoseSync()">🔍 诊断</button>
+        </div>
+        <div class="sync-actions" style="margin-top:6px">
+          <button class="btn btn-ghost" onclick="repairSync()">🛠 修复数据不一致（清幽灵 + 对齐）</button>
+        </div>
+        <div class="sync-status" id="sync-status">未配置。填写 Supabase 项目地址和 anon key 并连接。</div>
+        <div class="sync-last" id="sync-last"></div>
+        <div class="sync-last" id="sync-active"></div>
+        <div id="sync-diag" style="margin-top:10px;font-size:12px;color:var(--text-3);white-space:pre-wrap;word-break:break-all"></div>
+      </div>
+
+      <div class="sync-card">
+        <details class="guide">
+          <summary class="guide-title">📖 第一次使用？Supabase 免费数据库部署（国内可访问，无需 VPN）</summary>
+          <ol class="guide-steps">
+            <li><strong>注册：</strong>打开 <a href="https://supabase.com" target="_blank">supabase.com</a>，点 <strong>Start your project</strong>，用邮箱或 GitHub 登录。</li>
+            <li><strong>建项目：</strong>点 <strong>New project</strong>，Name 填 <code>workbench</code>，设一个数据库密码（记好），Region 选 <strong>Southeast Asia (Singapore)</strong>，点 Create，等 1-2 分钟。</li>
+            <li><strong>建表：</strong>进项目后，左侧 <strong>SQL Editor</strong> → 点 <strong>New query</strong> → 粘贴下方 <strong>SQL</strong> → 点 <strong>Run</strong>。</li>
+            <li><strong>抄密钥：</strong>左侧 <strong>Settings → API</strong>，复制 <strong>Project URL</strong> 和 <strong>anon public key</strong>。</li>
+            <li><strong>填回本页：</strong>把 URL 和 anon key 粘贴到上方两个输入框，点「保存并连接」。</li>
+          </ol>
+          <button class="btn btn-primary" style="margin-top:12px" onclick="copySql()">📋 复制建表 SQL</button>
+          <p class="guide-note">💡 配置一次后，手机和电脑填同一个 URL 和 key，数据自动合并同步。相比 Cloudflare，Supabase 在国内访问更稳定。</p>
+        </details>
+      </div>
+
+      <div class="sync-card sync-how">
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:10px">同步逻辑</h3>
+        <p style="font-size:13px;color:var(--text-2);line-height:1.8">
+          · 每个站点有独立的私有数据行，不同用户之间互不串数据
+· 打开应用时自动拉取云端数据并合并（同一条记录以最近修改的为准）<br>
+          · 每次新增/修改灵感或项目后，自动推送云端（几秒内）<br>
+          · 在「云同步」页点「立即同步」可手动强制合并一次
+        </p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ===== Mobile Tabbar ===== -->
+<div class="mobile-tabbar">
+  <button class="tab-btn active" data-view="inspirations">
+    <span class="tab-icon">💡</span> 灵感
+  </button>
+  <button class="tab-btn" data-view="projects">
+    <span class="tab-icon">📋</span> 项目
+  </button>
+  <button class="tab-btn" data-view="sync">
+    <span class="tab-icon">☁️</span> 同步
+  </button>
+</div>
+
+<!-- ===== FAB ===== -->
+<button class="fab" onclick="openQuickInput()" title="快速记录灵感 (Ctrl+I)">💡</button>
+
+<!-- ===== Modal ===== -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal()"></div>
+<div class="modal" id="modal"></div>
+
+<!-- ===== Toast ===== -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ============================================================
+//  STORE — localStorage data layer
+// ============================================================
+const STORE_KEY = 'workbench_v1';
+const Store = {
+  data: { inspirations: [], projects: [] },
+
+  init() {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      try {
+        this.data = JSON.parse(raw);
+        // 兼容旧数据：确保结构完整
+        if (!this.data.inspirations) this.data.inspirations = [];
+        if (!this.data.projects) this.data.projects = [];
+      } catch(e) { this.data = {inspirations:[],projects:[]}; }
+    }
+    // 删除墓碑：记录被删除的条目 id，同步时用它们过滤掉云端残留的旧数据（如历史种子），
+    // 从而保证"删过的数据永远不再被拉回来"。
+    if (!this.data.deletedIds) this.data.deletedIds = [];
+    // 自动清理历史种子数据（ins_seed*/proj_seed1）：无论残留在本机还是云端，
+    // 一律加入删除墓碑，确保它们永远不再出现。这是对旧版"演示数据复活"bug 的最终兜底。
+    const SEED_IDS = ['ins_seed1','ins_seed2','ins_seed3','proj_seed1','ins_seed4','ins_seed5'];
+    let changed = false;
+    this.data.inspirations = this.data.inspirations.filter(i => {
+      if (SEED_IDS.includes(i.id)) { if(!this.data.deletedIds.includes(i.id)) this.data.deletedIds.push(i.id); changed = true; return false; }
+      return true;
+    });
+    this.data.projects = this.data.projects.filter(p => {
+      if (SEED_IDS.includes(p.id)) { if(!this.data.deletedIds.includes(p.id)) this.data.deletedIds.push(p.id); changed = true; return false; }
+      return true;
+    });
+    if (changed) localStorage.setItem(STORE_KEY, JSON.stringify(this.data));
+    // 注意：不再自动播种种子数据。
+    // 之前这里会在"本地为空"时调用 _seed()，导致用户删除种子数据后，刷新页面又自动复活，
+    // 且种子 updatedAt 用 Date.now() 比真实数据新，合并同步时覆盖并删除了用户的真实数据。
+    // 现在数据为空就保持为空，显示空状态引导，绝不自动插入演示数据。
+  },
+  save() {
+    localStorage.setItem(STORE_KEY, JSON.stringify(this.data));
+    this.updateStats();
+    // 任何本地改动都标记“待推送”并安排同步；即使这次推送失败，后台轮询也会自动重试补推
+    if (typeof Sync !== 'undefined' && Sync._ready) {
+      Sync._dirty = true;
+      Sync.schedulePush();
+    }
+  },
+
+  // Inspiration CRUD
+  addInspiration(content, tags=[]) {
+    const cat = detectCategory(content);
+    const ins = {id:'ins_'+Date.now(),content,category:cat,tags,starred:false,createdAt:Date.now(),updatedAt:Date.now()};
+    this.data.inspirations.unshift(ins);
+    this.save();
+    return ins;
+  },
+  updateInspiration(id, data) {
+    const ins = this.data.inspirations.find(i=>i.id===id);
+    if (ins) { Object.assign(ins, data, {updatedAt:Date.now()}); this.save(); }
+  },
+  deleteInspiration(id) {
+    this.data.inspirations = this.data.inspirations.filter(i=>i.id!==id);
+    // 记录删除墓碑，防止同步时云端残留的该数据再次被拉回来
+    if (!this.data.deletedIds.includes(id)) this.data.deletedIds.push(id);
+    this.save();
+    // 删除后立即同步，确保墓碑马上广播到云端（不等 15 秒轮询）
+    if (typeof Sync !== 'undefined' && Sync._ready) {
+      Sync.removeNow(id).then(ok => {
+        if (!ok) showToast('已从本机删除，但云端同步未确认，稍后自动重试', 'error');
+      });
+    }
+  },
+
+  // Project CRUD
+  addProject(title, description) {
+    const proj = {id:'proj_'+Date.now(),title,description,status:'idea',skills:[],tasks:[],notes:'',
+      createdAt:Date.now(),updatedAt:Date.now()};
+    this.data.projects.unshift(proj);
+    this.save();
+    return proj;
+  },
+  getProject(id) { return this.data.projects.find(p=>p.id===id); },
+  updateProject(id, data) {
+    const proj = this.getProject(id);
+    if (proj) { Object.assign(proj, data, {updatedAt:Date.now()}); this.save(); }
+  },
+  deleteProject(id) {
+    this.data.projects = this.data.projects.filter(p=>p.id!==id);
+    // 记录删除墓碑，防止同步时云端残留的该数据再次被拉回来
+    if (!this.data.deletedIds.includes(id)) this.data.deletedIds.push(id);
+    this.save();
+    // 删除后立即同步，确保墓碑马上广播到云端（不等 15 秒轮询）
+    if (typeof Sync !== 'undefined' && Sync._ready) {
+      Sync.removeNow(id).then(ok => {
+        if (!ok) showToast('已从本机删除，但云端同步未确认，稍后自动重试', 'error');
+      });
+    }
+  },
+
+  // Project items
+  addProjectItem(projId, type, name, category='', source='manual') {
+    const proj = this.getProject(projId);
+    if (!proj) return;
+    const item = {id:(type==='skill'?'sk':'tk')+'_'+Date.now()+Math.random().toString(36).slice(2,5),name,category,adopted:source==='manual',completed:false,source};
+    proj[type+'s'].push(item);
+    this.save();
+    return item;
+  },
+  toggleItemAdopted(projId, type, itemId) {
+    const proj = this.getProject(projId);
+    if (!proj) return;
+    const item = proj[type+'s'].find(i=>i.id===itemId);
+    if (item) { item.adopted = !item.adopted; this.save(); }
+  },
+  toggleItemCompleted(projId, itemId) {
+    const proj = this.getProject(projId);
+    if (!proj) return;
+    const item = proj.tasks.find(i=>i.id===itemId);
+    if (item) { item.completed = !item.completed; this.save(); }
+  },
+  deleteProjectItem(projId, type, itemId) {
+    const proj = this.getProject(projId);
+    if (!proj) return;
+    proj[type+'s'] = proj[type+'s'].filter(i=>i.id!==itemId);
+    this.save();
+  },
+
+  updateStats() {
+    const insp = this.data.inspirations.length;
+    const proj = this.data.projects.length;
+    const active = this.data.projects.filter(p=>p.status==='active').length;
+    const done = this.data.projects.filter(p=>p.status==='done').length;
+    document.getElementById('nav-insp-count').textContent = insp;
+    document.getElementById('nav-proj-count').textContent = proj;
+    document.getElementById('stat-insp').textContent = insp;
+    document.getElementById('stat-proj').textContent = proj;
+    document.getElementById('stat-active').textContent = active;
+    document.getElementById('stat-done').textContent = done;
+  }
+};
+
+// ============================================================
+//  CLOUDFLARE WORKER SYNC (免费云同步)
+// ============================================================
+
+// Cloudflare Worker 同步后端代码（部署时粘贴到 Cloudflare Worker）
+const SETUP_SQL = `-- 工作台数据表（单行全量存储）
+create table if not exists public.workbench_data (
+  id text primary key,
+  data jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+-- 开启 RLS，允许匿名读写（配合 anon key）
+alter table public.workbench_data enable row level security;
+create policy "allow anon read"  on public.workbench_data for select using (true);
+create policy "allow anon insert" on public.workbench_data for insert with check (true);
+create policy "allow anon update" on public.workbench_data for update using (true);`;
+
+var Sync = {
+  // 默认配置（已内置，避免用户手填出错；localStorage 优先）
+  supabaseUrl: localStorage.getItem('sync_url') || 'https://lfbnmalkcaceacqgojkt.supabase.co',
+  supabaseKey: localStorage.getItem('sync_key') || 'sb_publishable_kF7EbDPmvO9zGTBAfwDoew_dRTF5KEv',
+  status: 'unconfigured', // unconfigured | connecting | connected | syncing | error
+  lastSyncAt: localStorage.getItem('sync_last') || null,
+  _ready: false, _syncing: false, _dirty: false, _timer: null, _pollTimer: null,
+  ROW_ID: 'wb_c725b68ea6a8a664', // 单行全量存储（本部署私有数据行，避免与其它站点串数据）
+
+  // 地址规范化兜底：剥离 /rest/v1/ 等路径，只保留根域名
+  _normalizeUrl(u) {
+    return String(u || '').replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
+  },
+
+  init() {
+    // 若 localStorage 存的是旧 Cloudflare 配置（workers.dev），强制切换到内置 Supabase 配置
+    const stored = localStorage.getItem('sync_url');
+    if (stored && /workers\.dev/i.test(stored)) {
+      localStorage.removeItem('sync_url');
+      localStorage.removeItem('sync_key');
+      this.supabaseUrl = 'https://lfbnmalkcaceacqgojkt.supabase.co';
+      this.supabaseKey = 'sb_publishable_kF7EbDPmvO9zGTBAfwDoew_dRTF5KEv';
+    }
+    this.supabaseUrl = this._normalizeUrl(this.supabaseUrl);
+    if (this.supabaseUrl && this.supabaseKey) this.connect();
+  },
+
+  async connect() {
+    if (!this.supabaseUrl) { this.setStatus('unconfigured'); return; }
+    try {
+      this.setStatus('connecting');
+      this._ready = true;
+      // 首次连接：拉云端并合并到本地（云端∪本地，墓碑过滤）。
+      // 本机新增的数据会被保留并随之后的操作推上云端，云端已有的数据能拉下来看到。
+      await this.initialPull();
+      this.setStatus('connected');
+      this.startPolling();
+    } catch (e) {
+      console.error('sync connect error:', e);
+      this._ready = false;
+      this.lastError = this._describeError(e);
+      this.setStatus('error');
+      showToast('连接失败：' + this.lastError, 'error');
+    }
+  },
+
+  // 打开页面：拉云端并合并到本地（云端∪本地，墓碑过滤）。不覆盖、不清空本地，
+  // 保证本机新增的数据不会被云端清掉，同时云端已有的数据能拉下来看到。
+  async initialPull() {
+    let remote = null;
+    try { remote = await this.pull(); } catch (e) { throw e; }
+    const localHasData = (Store.data.inspirations && Store.data.inspirations.length > 0)
+      || (Store.data.projects && Store.data.projects.length > 0);
+    let remoteHasData = false;
+    if (remote && remote.inspirations) {
+      remoteHasData = (remote.inspirations && remote.inspirations.length > 0)
+        || (remote.projects && remote.projects.length > 0);
+      // 先合并两端墓碑（得到并集），再拿合并后的墓碑去过滤数据，
+      // 这样本端残留的"已在别处删除"的数据不会复活。
+      const mergedDeleted = mergeDeletedIds(Store.data.deletedIds, remote.deletedIds);
+      const merged = mergeData(Store.data, remote, mergedDeleted);
+      Store.data.inspirations = merged.inspirations;
+      Store.data.projects = merged.projects;
+      Store.data.deletedIds = mergedDeleted;
+      localStorage.setItem(STORE_KEY, JSON.stringify(Store.data));
+      Store.updateStats();
+      renderCurrentView();
+    }
+    // 首次连接：若云端为空、但本机已有数据，自动把本机数据推上云端，
+    // 避免出现“本机明明有数据，云端却是空的，另一端永远看不到”的情况。
+    if (!remoteHasData && localHasData) {
+      await this.push();
+      this._dirty = false;
+      this.lastSyncAt = Date.now();
+      localStorage.setItem('sync_last', String(this.lastSyncAt));
+    }
+  },
+
+  startPolling() {
+    if (this._pollTimer) clearInterval(this._pollTimer);
+    this._pollTimer = setInterval(() => {
+      if (this._ready && !this._syncing) this.pullInBackground();
+    }, 15000);
+  },
+
+  async pullInBackground() {
+    try {
+      const remote = await this.pull();
+      if (remote && remote.inspirations) {
+        // 关键：先合并墓碑（得到两端并集），再拿合并后的墓碑去过滤数据，
+        // 否则 B 端本地若还残留"已在别处删除"的数据，会因墓碑未及时合并而被保留并推回云端。
+        const mergedDeleted = mergeDeletedIds(Store.data.deletedIds, remote.deletedIds);
+        const merged = mergeData(Store.data, remote, mergedDeleted);
+        Store.data.inspirations = merged.inspirations;
+        Store.data.projects = merged.projects;
+        Store.data.deletedIds = mergedDeleted;
+        localStorage.setItem(STORE_KEY, JSON.stringify(Store.data));
+        Store.updateStats();
+        renderCurrentView();
+        this.lastSyncAt = Date.now();
+        localStorage.setItem('sync_last', String(this.lastSyncAt));
+        this.setStatus('connected');
+      }
+      // 关键修复：如果还有本地改动没推上云端（上次推送失败、删除未确认等），
+      // 拉取合并后立即补推一次并清除待推送标记。以前“只拉不推”，失败一次就永远不同步。
+      if (this._dirty) {
+        await this.push();
+        this._dirty = false;
+        this.lastSyncAt = Date.now();
+        localStorage.setItem('sync_last', String(this.lastSyncAt));
+        this.setStatus('connected');
+      }
+    } catch (e) {
+      // 后台拉取/推送失败不打断用户，保留 dirty 标记，等下次轮询自动重试
+    }
+  },
+
+  _describeError(e) {
+    const m = String((e && (e.message || e)) || '');
+    if (/401|invalid.*key|apikey/i.test(m)) return '配置错误：Supabase URL 或 anon key 填错了，请核对。';
+    if (/404|not found/i.test(m)) return '数据库或表不存在：请确认建表后把「数据库密码」正确填入。';
+    if (/network|fetch|Failed to fetch/i.test(m)) return '网络异常：无法访问 Supabase，请检查网络后重试。';
+    if (/timeout|超时/i.test(m)) return '请求超时：Supabase 无响应，请检查网络后重试。';
+    return '同步失败：' + (m || '未知原因') + '。请确认 URL 和 anon key 正确。';
+  },
+
+  // Supabase REST API 封装
+  async _api(method, body) {
+    const url = this.supabaseUrl.replace(/\/$/, '') + '/rest/v1/workbench_data?id=eq.' + this.ROW_ID;
+    const headers = {
+      'apikey': this.supabaseKey,
+      'Authorization': 'Bearer ' + this.supabaseKey,
+      'Content-Type': 'application/json'
+    };
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 15000);
+    try {
+      const opts = { method, headers, signal: ctrl.signal };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(url, opts);
+      clearTimeout(t);
+      return res;
+    } catch (e) {
+      clearTimeout(t);
+      if (e.name === 'AbortError') throw new Error('timeout');
+      throw e;
+    }
+  },
+
+  async pull() {
+    const res = await this._api('GET');
+    if (res.status === 401) throw new Error('invalid apikey');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const rows = await res.json();
+    if (!rows || rows.length === 0) return null; // 云端还没有数据
+    return rows[0].data || null;
+  },
+
+  async push() {
+    if (!this._ready) return;
+    const payload = {
+      id: this.ROW_ID,
+      data: Object.assign({}, Store.data), // 完整快照（含 inspirations/projects/deletedIds）
+      updated_at: new Date().toISOString()
+    };
+    // 用 POST + on_conflict=id 做 upsert（PUT 更新会触发 pgrst_body 冲突，POST upsert 实测稳定）
+    const url = this.supabaseUrl.replace(/\/$/, '') + '/rest/v1/workbench_data?on_conflict=id';
+    const headers = {
+      'apikey': this.supabaseKey,
+      'Authorization': 'Bearer ' + this.supabaseKey,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates'
+    };
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 15000);
+    let res;
+    try {
+      res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload), signal: ctrl.signal });
+      clearTimeout(t);
+    } catch (e) {
+      clearTimeout(t);
+      if (e.name === 'AbortError') throw new Error('timeout');
+      throw e;
+    }
+    if (res.status === 401) throw new Error('invalid apikey');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+  },
+
+  async ensureRow() {
+    // 已由 push() 用 POST upsert 统一处理，保留此方法仅作兼容
+    return this.push();
+  },
+
+  async syncNow(manual) {
+    if (!this._ready) { if (manual) showToast('尚未连接，请先填写同步服务地址', 'error'); return; }
+    if (this._syncing) return;
+    this._syncing = true;
+    try {
+      this.setStatus('syncing');
+      // 1. 拉取云端最新数据
+      let remote = await this.pull();
+      if (remote && remote.inspirations) {
+        // 关键：先合并两端墓碑，再拿合并结果过滤数据（否则本端残留的、已被别处删除的数据会复活）
+        const mergedDeleted = mergeDeletedIds(Store.data.deletedIds, remote.deletedIds);
+        const merged = mergeData(Store.data, remote, mergedDeleted);
+        Store.data.inspirations = merged.inspirations;
+        Store.data.projects = merged.projects;
+        Store.data.deletedIds = mergedDeleted;
+        localStorage.setItem(STORE_KEY, JSON.stringify(Store.data));
+      }
+      // 2. 推送合并后的完整数据到云端
+      await this.push();
+      this._dirty = false;
+      this.lastSyncAt = Date.now();
+      localStorage.setItem('sync_last', String(this.lastSyncAt));
+      this.setStatus('connected');
+      Store.updateStats();
+      renderCurrentView();
+      if (manual) showToast('同步完成 ✓', 'success');
+    } catch (e) {
+      console.error('sync error:', e);
+      this.lastError = this._describeError(e);
+      this.setStatus('error');
+      if (manual) showToast('同步失败：' + this.lastError, 'error');
+    } finally {
+      this._syncing = false;
+    }
+  },
+
+  schedulePush() {
+    if (!this._ready) return;
+    clearTimeout(this._timer);
+    this._timer = setTimeout(async () => {
+      if (!this._ready || this._syncing) return;
+      this._syncing = true;
+      try {
+        // 先拉取云端并合并（避免本机用旧数据覆盖云端新数据），再推送完整快照。
+        // 关键：拉取失败就放弃本次推送，绝不把本机旧数据盲目推回云端（避免污染）。
+        let remote;
+        try { remote = await this.pull(); } catch(e) {
+          this._syncing = false;
+          return;
+        }
+        if (remote && remote.inspirations) {
+          // 关键：先合并两端墓碑，再过滤数据（否则本端残留的、已被别处删除的数据会复活并被推回云端）
+          const mergedDeleted = mergeDeletedIds(Store.data.deletedIds, remote.deletedIds);
+          const merged = mergeData(Store.data, remote, mergedDeleted);
+          Store.data.inspirations = merged.inspirations;
+          Store.data.projects = merged.projects;
+          Store.data.deletedIds = mergedDeleted;
+          localStorage.setItem(STORE_KEY, JSON.stringify(Store.data));
+          Store.updateStats();
+          renderCurrentView();
+          await this.push();
+        } else if (remote === null) {
+          // 云端完全为空（如新设备/刚清空）：把本地推上去（首次使用或迁移场景）
+          const hasLocal = (Store.data.inspirations && Store.data.inspirations.length)
+            || (Store.data.projects && Store.data.projects.length);
+          if (hasLocal) await this.push();
+        }
+        this._dirty = false;
+        this.lastSyncAt = Date.now();
+        localStorage.setItem('sync_last', String(this.lastSyncAt));
+        this.setStatus('connected');
+      } catch (e) {
+        console.error('push error:', e);
+        this.lastError = this._describeError(e);
+        this.setStatus('error');
+      } finally {
+        this._syncing = false;
+      }
+    }, 2000);
+  },
+
+  // 删除指定 id 的云端数据（灵感或项目）。删除时显式调用，确保删除即时、可靠地同步到云端：
+  // 先拉云端最新 → 移除该 id + 合并墓碑 → 推送。即使墓碑异步传播失效，这里也能保证云端该条被删掉。
+  // 返回 Promise<boolean>（true=成功，false=失败），供 UI 显示删除同步结果。
+  async removeNow(id) {
+    // 未连接/正在同步时不再“假装成功”：标记待推送，由后台轮询自动重试补推删除墓碑
+    if (!this._ready || this._syncing) { this._dirty = true; return false; }
+    this._syncing = true;
+    try {
+      let remote = null;
+      try { remote = await this.pull(); } catch(e) {}
+      if (remote && remote.inspirations) {
+        const mergedDeleted = mergeDeletedIds(Store.data.deletedIds, remote.deletedIds);
+        const merged = mergeData(Store.data, remote, mergedDeleted);
+        Store.data.inspirations = merged.inspirations;
+        Store.data.projects = merged.projects;
+        Store.data.deletedIds = mergedDeleted;
+        localStorage.setItem(STORE_KEY, JSON.stringify(Store.data));
+      }
+      // 保险：确保目标 id 一定在墓碑里（即使本地合并逻辑有偏差）
+      if (id && !Store.data.deletedIds.includes(id)) Store.data.deletedIds.push(id);
+      await this.push();
+      this._dirty = false;
+      this.lastSyncAt = Date.now();
+      localStorage.setItem('sync_last', String(this.lastSyncAt));
+      this.setStatus('connected');
+      Store.updateStats();
+      renderCurrentView();
+      return true;
+    } catch (e) {
+      console.error('remove error:', e);
+      this.lastError = this._describeError(e);
+      this.setStatus('error');
+      this._dirty = true; // 推送失败保留待推送标记，下次轮询自动重试
+      return false;
+    } finally {
+      this._syncing = false;
+    }
+  },
+
+  setStatus(status) {
+    this.status = status;
+    this.renderUI();
+  },
+
+  renderUI() {
+    const urlEl = document.getElementById('sync-worker');
+    if (urlEl && !urlEl.value) urlEl.value = this.supabaseUrl;
+    const keyEl = document.getElementById('sync-secret');
+    if (keyEl && !keyEl.value) keyEl.value = this.supabaseKey;
+
+    const el = document.getElementById('sync-status');
+    if (el) {
+      const dotCls = {connected:'ok', syncing:'busy', error:'err'}[this.status] || '';
+      const texts = {
+        unconfigured: '未配置。填写 Supabase 项目地址和 anon key 并连接后，手机和电脑自动同步。',
+        connecting: '正在连接同步服务...',
+        connected: '已连接，数据自动同步中',
+        syncing: '正在同步数据...',
+        error: '连接失败：' + (this.lastError || '请检查 URL 与 anon key'),
+      };
+      el.className = 'sync-status ' + dotCls;
+      el.innerHTML = `<span class="dot"></span> ${texts[this.status] || ''} <span style="opacity:.6;margin-left:8px">(v${APP_VERSION_NUM})</span>`;
+    }
+    const last = document.getElementById('sync-last');
+    if (last) last.textContent = this.lastSyncAt ? '上次同步：' + new Date(+this.lastSyncAt).toLocaleString() : '';
+
+    // 显示当前生效的同步地址，方便核对手机和电脑是否填了同一个地址（不同地址 = 永远不同步）
+    const act = document.getElementById('sync-active');
+    if (act) {
+      if (this.supabaseUrl) {
+        const builtin = this.supabaseUrl === 'https://lfbnmalkcaceacqgojkt.supabase.co';
+        act.textContent = '当前同步地址：' + this.supabaseUrl;
+        if (builtin) {
+          act.textContent += '（⚠️ 内置公共演示库，多人共用同一份数据，强烈建议按下方教程创建自己的 Supabase 项目）';
+          act.style.color = '#b45309';
+        } else {
+          act.style.color = '';
+        }
+      } else {
+        act.textContent = '当前未配置同步地址';
+      }
+    }
+
+    const ind = document.getElementById('sync-indicator');
+    if (ind) {
+      if (this.status === 'connected' || this.status === 'syncing') {
+        ind.style.display = 'block';
+        ind.innerHTML = (this.status === 'syncing' ? '🔄 同步中…' : '☁️ 已同步 ' + (this.lastSyncAt ? timeAgo(+this.lastSyncAt) : ''));
+      } else {
+        ind.style.display = 'none';
+      }
+    }
+    const btn = document.getElementById('sync-connect-btn');
+    if (btn) btn.textContent = (this.status === 'connected' || this.status === 'syncing') ? '重新连接' : '保存并连接';
+  }
+};
+
+function mergeData(local, remote, mergedDeleted) {
+  // 永久黑名单：历史演示种子数据的 id，无论残留在本机还是云端、无论本机是否删过，
+  // 一律过滤，确保它们永远不再出现。这是对旧版"演示数据复活"bug 的最终兜底。
+  const PERMA_SEED = new Set(['ins_seed1','ins_seed2','ins_seed3','ins_seed4','ins_seed5','proj_seed1']);
+  // 删除墓碑：优先使用外部传入的"两端已合并"墓碑集；未传时退回本机墓碑。
+  // 关键：必须在调用方先把两端墓碑合并（mergeDeletedIds）再传入，否则本端残留的、
+  // 已在别处删除的数据会被保留并反向推回云端。
+  const deletedIds = new Set(mergedDeleted || local.deletedIds || []);
+  // 合并本地 + 云端，按 id + 时间戳取最新，同时过滤掉已删除或种子黑名单内的 id。
+  const mergeArr = (a, b) => {
+    const map = new Map();
+    [...(b || []), ...(a || [])].forEach(item => {
+      if (!item || !item.id) return;
+      if (deletedIds.has(item.id) || PERMA_SEED.has(item.id)) return; // 跳过已删除 / 种子
+      const ex = map.get(item.id);
+      if (!ex || (item.updatedAt || 0) >= (ex.updatedAt || 0)) map.set(item.id, item);
+    });
+    return Array.from(map.values());
+  };
+  return {
+    inspirations: mergeArr(local.inspirations, remote.inspirations),
+    projects: mergeArr(local.projects, remote.projects),
+  };
+}
+
+// 合并两端的删除墓碑，取并集（已删除的 id 在任意一端出现过即视为已删除）
+function mergeDeletedIds(a, b) {
+  const s = new Set([...(a || []), ...(b || [])]);
+  return Array.from(s);
+}
+
+function saveSyncConfig() {
+  const u = document.getElementById('sync-worker').value.trim();
+  const k = document.getElementById('sync-secret').value.trim();
+  if (!u) { showToast('请输入 Supabase 项目地址', 'error'); return; }
+  if (!/^https?:\/\//.test(u)) { showToast('项目地址需以 https:// 开头', 'error'); return; }
+  if (!k) { showToast('请输入 anon public key（新版叫 Publishable key）', 'error'); return; }
+  // 自动规范化：剥离多余的 /rest/v1/ 等路径，只保留根域名
+  u = u.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
+  Sync.supabaseUrl = u;
+  Sync.supabaseKey = k;
+  localStorage.setItem('sync_url', u);
+  localStorage.setItem('sync_key', k);
+  Sync.connect();
+}
+
+function copySql() {
+  navigator.clipboard.writeText(SETUP_SQL).then(
+    () => showToast('建表 SQL 已复制 ✓ 去 Supabase 的 SQL Editor 粘贴并 Run', 'success')
+  ).catch(
+    () => showToast('复制失败，请手动复制', 'error')
+  );
+}
+
+const APP_VERSION_NUM = '14'; // 当前代码版本，显示在诊断和同步状态栏里便于定位是否加载了最新版
+const APP_VERSION = 'v' + APP_VERSION_NUM;
+
+async function diagnoseSync() {
+  const el = document.getElementById('sync-diag');
+  if (!el) return;
+  if (!Sync.supabaseUrl) { el.textContent = '❌ 未配置 Supabase 项目地址'; return; }
+  el.textContent = '🔍 正在诊断... (代码版本 ' + APP_VERSION + ')\n本机时间: ' + new Date().toLocaleString();
+
+  // 1. 本地数据
+  const localInspirations = (Store.data.inspirations || []).length;
+  const localProjects = (Store.data.projects || []).length;
+  el.textContent += `\n\n📦 本地数据: ${localInspirations} 条灵感, ${localProjects} 个项目`;
+
+  // 2. 测试连接（拉取云端）
+  el.textContent += '\n\n🌐 测试连接: ' + Sync.supabaseUrl;
+  try {
+    const t0 = Date.now();
+    const remote = await Sync.pull();
+    const ms = Date.now() - t0;
+    if (remote === null) {
+      el.textContent += `\n   ✅ 连接成功 (${ms}ms)，但云端还没有数据。`;
+      el.textContent += `\n   ℹ️ 本地有 ${localInspirations} 条灵感，点「立即同步」推送到云端即可。`;
+      return;
+    }
+    const rInspirations = (remote.inspirations || []).length;
+    const rProjects = (remote.projects || []).length;
+    el.textContent += `\n✅ 连接成功 (${ms}ms)\n☁️ 云端数据: ${rInspirations} 条灵感, ${rProjects} 个项目`;
+
+    // 对比云端与本地条目，找出差异（帮助定位"多/少一条"是哪条）
+    const cloudIds = new Set((remote.inspirations||[]).map(i=>i.id));
+    const localIds = new Set((Store.data.inspirations||[]).map(i=>i.id));
+    const cloudOnly = (remote.inspirations||[]).filter(i=>!localIds.has(i.id));
+    const localOnly = (Store.data.inspirations||[]).filter(i=>!cloudIds.has(i.id));
+    if (cloudOnly.length || localOnly.length) {
+      el.textContent += '\n\n📊 两端差异:';
+      if (cloudOnly.length) el.textContent += '\n  ☁️ 仅云端有 ' + cloudOnly.length + ' 条:';
+      cloudOnly.forEach(i => el.textContent += '\n     · [' + (i.id||'').slice(0,18) + '] ' + (i.content||'').substring(0,25));
+      if (localOnly.length) el.textContent += '\n  📱 仅本机有 ' + localOnly.length + ' 条:';
+      localOnly.forEach(i => el.textContent += '\n     · [' + (i.id||'').slice(0,18) + '] ' + (i.content||'').substring(0,25));
+    }
+
+    if (rInspirations === 0 && rProjects === 0 && localInspirations > 0) {
+      el.textContent += '\n\n⚠️ 云端为空但本地有数据 → 本地数据尚未推送到云端。点「立即同步」推送。';
+    } else if (rInspirations > localInspirations) {
+      el.textContent += '\n\n💡 云端比本地多 → 有其他设备的数据未拉取到本机。点「立即同步」拉取。';
+    } else if (rInspirations === localInspirations) {
+      el.textContent += '\n\n✅ 云端和本地数据量一致，同步正常。';
+    } else {
+      el.textContent += '\n\nℹ️ 本地比云端多 → 本地新增的数据还没推送。点「立即同步」推送。';
+    }
+
+    // 列出云端最近的几条数据标题
+    if (rInspirations > 0) {
+      const recent = (remote.inspirations || []).slice(-3).map(i => {
+        const c = (i.content || '').substring(0, 30);
+        return `   · ${c}${(i.content||'').length > 30 ? '...' : ''}`;
+      }).join('\n');
+      el.textContent += '\n\n云端最近灵感:\n' + recent;
+    }
+  } catch (e) {
+    el.textContent += '\n   ❌ 连接失败: ' + Sync._describeError(e);
+    el.textContent += '\n   原始错误: ' + String(e.message || e);
+  }
+}
+
+// 一键修复数据不一致：把本机当前数据（已含删除墓碑）设为权威，全量推送到云端，
+// 使云端与本机完全一致，从而清理掉云端残留的"幽灵"数据（已删但云端还在的）。
+async function repairSync() {
+  const el = document.getElementById('sync-diag');
+  if (!el) return;
+  if (!Sync._ready) { showToast('请先连接同步服务', 'error'); return; }
+  el.textContent = '🛠 正在修复数据不一致...\n(代码版本 ' + APP_VERSION + ')';
+  try {
+    // 1. 拉云端，合并墓碑并过滤（把云端"幽灵"数据从本机视角剔除）
+    let remote;
+    try { remote = await Sync.pull(); } catch(e) {}
+    if (remote && remote.inspirations) {
+      const mergedDeleted = mergeDeletedIds(Store.data.deletedIds, remote.deletedIds);
+      const merged = mergeData(Store.data, remote, mergedDeleted);
+      Store.data.inspirations = merged.inspirations;
+      Store.data.projects = merged.projects;
+      Store.data.deletedIds = mergedDeleted;
+      localStorage.setItem(STORE_KEY, JSON.stringify(Store.data));
+    }
+    // 2. 把清理后的本机数据全量推回云端（云端 = 本机镜像）
+    await Sync.push();
+    Sync.lastSyncAt = Date.now();
+    localStorage.setItem('sync_last', String(Sync.lastSyncAt));
+    Sync.setStatus('connected');
+    Store.updateStats();
+    renderCurrentView();
+    el.textContent += '\n\n✅ 修复完成：云端已与本机对齐。';
+    el.textContent += '\n   📱 本机: ' + (Store.data.inspirations||[]).length + ' 条灵感, ' + (Store.data.projects||[]).length + ' 个项目';
+    // 再拉一次确认云端
+    const after = await Sync.pull();
+    if (after) {
+      el.textContent += '\n   ☁️ 云端: ' + (after.inspirations||[]).length + ' 条灵感, ' + (after.projects||[]).length + ' 个项目';
+      el.textContent += '\n   💡 请到另一端也点一次「修复数据不一致」，两端即可完全对齐。';
+    }
+    showToast('数据已修复对齐 ✓', 'success');
+  } catch (e) {
+    el.textContent += '\n   ❌ 修复失败: ' + Sync._describeError(e);
+    showToast('修复失败：' + Sync._describeError(e), 'error');
+  }
+}
+
+function renderCurrentView() {
+  if (currentView === 'inspirations') renderInspirations();
+  else if (currentView === 'projects') renderProjects();
+  else if (currentView === 'detail') renderDetail();
+}
+
+// ============================================================
+//  CATEGORY DETECTION
+// ============================================================
+function detectCategory(text) {
+  const t = text.toLowerCase();
+  if (/[?？]$/.test(text) || /怎么|为什么|如何|是什么|能不能|可以吗|是否/.test(text)) return 'question';
+  if (/目标|计划|想要|希望|打算|准备|要做|必须|一定要/.test(text)) return 'goal';
+  if (/想法|觉得|如果|也许|可能|或许|突然|灵感|创意/.test(text)) return 'idea';
+  return 'note';
+}
+const CAT_META = {
+  idea:     {label:'想法', icon:'💡'},
+  goal:     {label:'目标', icon:'🎯'},
+  note:     {label:'笔记', icon:'📝'},
+  question: {label:'问题', icon:'❓'},
+};
+
+// ============================================================
+//  ANALYSIS ENGINE
+// ============================================================
+const ANALYSIS_TEMPLATES = {
+  web: {
+    label:'Web/App开发',
+    keywords:['网站','web','前端','后端','app','应用','小程序','系统','平台','网页','api','数据库','服务器','部署','接口'],
+    skills:[
+      {name:'HTML & CSS 基础',category:'前端'},
+      {name:'JavaScript / TypeScript',category:'前端'},
+      {name:'前端框架（React / Vue）',category:'前端'},
+      {name:'后端语言（Node.js / Python）',category:'后端'},
+      {name:'数据库设计（MySQL / MongoDB）',category:'后端'},
+      {name:'Git & GitHub 版本控制',category:'工具'},
+      {name:'RESTful API 设计',category:'后端'},
+      {name:'基础部署（Docker / Nginx / Vercel）',category:'运维'},
+    ],
+    tasks:[
+      {name:'明确产品需求与目标用户',category:'规划'},
+      {name:'确定技术栈与架构方案',category:'规划'},
+      {name:'设计 UI/UX 原型',category:'设计'},
+      {name:'搭建项目框架与开发环境',category:'开发'},
+      {name:'开发核心功能 MVP',category:'开发'},
+      {name:'编写测试用例',category:'测试'},
+      {name:'部署上线',category:'运维'},
+      {name:'收集用户反馈并迭代',category:'迭代'},
+    ],
+  },
+  content: {
+    label:'内容创作',
+    keywords:['视频','文章','播客','内容','自媒体','公众号','抖音','b站','小红书','频道','栏目','剪辑'],
+    skills:[
+      {name:'文案写作与故事结构',category:'内容'},
+      {name:'视频剪辑（剪映 / Premiere）',category:'制作'},
+      {name:'选题策划与热点追踪',category:'运营'},
+      {name:'平台算法与 SEO 理解',category:'运营'},
+      {name:'基础设计（封面图 / 缩略图）',category:'设计'},
+    ],
+    tasks:[
+      {name:'确定内容定位与目标受众',category:'规划'},
+      {name:'研究竞品与爆款内容',category:'调研'},
+      {name:'制定内容日历',category:'规划'},
+      {name:'制作并发布前 5 期内容',category:'执行'},
+      {name:'分析数据表现，调整策略',category:'迭代'},
+    ],
+  },
+  business: {
+    label:'创业/商业',
+    keywords:['创业','商业','产品','公司','生意','变现','商业模式','startup','赚钱','营收'],
+    skills:[
+      {name:'商业模式画布',category:'商业'},
+      {name:'市场调研与用户访谈',category:'调研'},
+      {name:'产品设计与 MVP 思维',category:'产品'},
+      {name:'基础财务知识',category:'财务'},
+      {name:'营销与增长策略',category:'营销'},
+    ],
+    tasks:[
+      {name:'验证问题：目标用户真的有这个需求吗',category:'验证'},
+      {name:'竞品分析：已有解决方案是什么',category:'调研'},
+      {name:'设计 MVP：最小成本验证假设',category:'产品'},
+      {name:'找到前 10 个种子用户',category:'增长'},
+      {name:'收集反馈，快速迭代',category:'迭代'},
+    ],
+  },
+  data: {
+    label:'数据/AI',
+    keywords:['数据','分析','ai','机器学习','深度学习','模型','python','算法','可视化','爬虫','大模型','gpt','llm'],
+    skills:[
+      {name:'Python 编程',category:'编程'},
+      {name:'数据处理（Pandas / NumPy）',category:'数据'},
+      {name:'统计学基础',category:'数学'},
+      {name:'机器学习 / NLP 基础',category:'AI'},
+      {name:'数据可视化（Matplotlib / ECharts）',category:'可视化'},
+    ],
+    tasks:[
+      {name:'明确分析目标与可用数据',category:'规划'},
+      {name:'收集与清洗数据',category:'数据'},
+      {name:'探索性数据分析',category:'分析'},
+      {name:'选择并训练模型 / 调用 API',category:'建模'},
+      {name:'评估结果并优化',category:'迭代'},
+    ],
+  },
+  design: {
+    label:'设计/创意',
+    keywords:['设计','ui','ux','画','创意','品牌','logo','海报','插画','figma','视觉'],
+    skills:[
+      {name:'设计基础（色彩 / 排版 / 构图）',category:'基础'},
+      {name:'设计工具（Figma / PS / AI）',category:'工具'},
+      {name:'用户研究与体验设计',category:'UX'},
+      {name:'设计系统与组件库',category:'系统'},
+    ],
+    tasks:[
+      {name:'收集灵感与参考案例',category:'调研'},
+      {name:'确定设计风格与方向',category:'规划'},
+      {name:'绘制草图与线框图',category:'设计'},
+      {name:'细化设计并制作高保真稿',category:'设计'},
+      {name:'评审反馈与修改定稿',category:'迭代'},
+    ],
+  },
+  learning: {
+    label:'学习/技能提升',
+    keywords:['学习','课程','考试','英语','编程','读书','知识','掌握','练习','考证'],
+    skills:[
+      {name:'高效学习方法（费曼技巧）',category:'方法'},
+      {name:'笔记系统（Notion / Obsidian）',category:'工具'},
+      {name:'时间管理与番茄工作法',category:'管理'},
+      {name:'间隔重复记忆法（Anki）',category:'方法'},
+    ],
+    tasks:[
+      {name:'明确学习目标与验收标准',category:'规划'},
+      {name:'收集优质学习资源',category:'准备'},
+      {name:'制定学习计划与时间线',category:'规划'},
+      {name:'按计划执行，每日输出',category:'执行'},
+      {name:'定期复盘与调整',category:'迭代'},
+    ],
+  },
+  writing: {
+    label:'写作/出版',
+    keywords:['写','书','小说','文章','博客','出版','文集','专栏'],
+    skills:[
+      {name:'写作技巧与叙事结构',category:'写作'},
+      {name:'选题策划',category:'策划'},
+      {name:'编辑与校对',category:'编辑'},
+    ],
+    tasks:[
+      {name:'确定主题与目标读者',category:'规划'},
+      {name:'搭建大纲与结构',category:'规划'},
+      {name:'收集素材与资料',category:'准备'},
+      {name:'逐章 / 逐篇写作',category:'执行'},
+      {name:'修改润色与定稿',category:'迭代'},
+    ],
+  },
+  event: {
+    label:'活动/策划',
+    keywords:['活动','展会','发布会','聚会','沙龙','线下','策划','组织'],
+    skills:[
+      {name:'活动策划与流程设计',category:'策划'},
+      {name:'预算管理',category:'财务'},
+      {name:'沟通协调与供应商管理',category:'协调'},
+      {name:'宣传推广',category:'营销'},
+    ],
+    tasks:[
+      {name:'确定活动主题与形式',category:'规划'},
+      {name:'制定预算',category:'财务'},
+      {name:'确定场地与时间',category:'准备'},
+      {name:'邀请嘉宾与报名',category:'执行'},
+      {name:'宣传推广',category:'营销'},
+      {name:'现场执行与复盘',category:'执行'},
+    ],
+  },
+  generic: {
+    label:'通用项目',
+    keywords:[],
+    skills:[
+      {name:'项目管理基础',category:'通用'},
+      {name:'时间管理与优先级排序',category:'通用'},
+      {name:'沟通与协作',category:'通用'},
+    ],
+    tasks:[
+      {name:'明确项目目标与成功标准',category:'规划'},
+      {name:'拆解任务为可执行的小步骤',category:'规划'},
+      {name:'制定时间线与里程碑',category:'规划'},
+      {name:'按计划执行',category:'执行'},
+      {name:'定期复盘与调整方向',category:'迭代'},
+    ],
+  },
+};
+
+function analyzeProject(description) {
+  const lower = description.toLowerCase();
+  let matched = [];
+  for (const [key, tpl] of Object.entries(ANALYSIS_TEMPLATES)) {
+    if (key === 'generic') continue;
+    if (tpl.keywords.some(kw => lower.includes(kw.toLowerCase()))) {
+      matched.push(tpl);
+    }
+  }
+  if (matched.length === 0) matched = [ANALYSIS_TEMPLATES.generic];
+
+  // Merge & deduplicate
+  const skillMap = new Map();
+  const taskMap = new Map();
+  matched.forEach(tpl => {
+    tpl.skills.forEach(s => { if(!skillMap.has(s.name)) skillMap.set(s.name, s); });
+    tpl.tasks.forEach(t => { if(!taskMap.has(t.name)) taskMap.set(t.name, t); });
+  });
+  // Always add generic items
+  ANALYSIS_TEMPLATES.generic.skills.forEach(s => { if(!skillMap.has(s.name)) skillMap.set(s.name, s); });
+  ANALYSIS_TEMPLATES.generic.tasks.forEach(t => { if(!taskMap.has(t.name)) taskMap.set(t.name, t); });
+
+  return {
+    skills: Array.from(skillMap.values()),
+    tasks: Array.from(taskMap.values()),
+  };
+}
+
+// ============================================================
+//  VIEW RENDERING
+// ============================================================
+let currentView = 'inspirations';
+let currentProjectId = null;
+let inspFilter = {cat:'all', search:''};
+
+function switchView(name) {
+  currentView = name;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-'+(name==='detail'?'detail':name)).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navMap = {inspirations:0, projects:1, detail:1, sync:2};
+  if (navMap[name] !== undefined) {
+    document.querySelectorAll('.nav-item')[navMap[name]]?.classList.add('active');
+  }
+  document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+  if (navMap[name] !== undefined) {
+    document.querySelectorAll('.tab-btn')[navMap[name]]?.classList.add('active');
+  }
+  if (name === 'inspirations') renderInspirations();
+  if (name === 'projects') renderProjects();
+}
+
+// --- Inspirations ---
+function renderInspirations() {
+  const grid = document.getElementById('insp-grid');
+  let items = Store.data.inspirations;
+
+  if (inspFilter.cat !== 'all') items = items.filter(i => i.category === inspFilter.cat);
+  if (inspFilter.search) {
+    const q = inspFilter.search.toLowerCase();
+    items = items.filter(i => i.content.toLowerCase().includes(q) || (i.tags||[]).some(t=>t.toLowerCase().includes(q)));
+  }
+
+  if (items.length === 0) {
+    grid.innerHTML = `<div class="empty"><div class="emoji">💡</div><h3>还没有灵感</h3><p>点击右下角 <span class="kbd">💡</span> 按钮<br>或按 <span class="kbd">Ctrl</span>+<span class="kbd">I</span> 快速记录想法</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = items.map(ins => {
+    const meta = CAT_META[ins.category] || CAT_META.note;
+    return `
+      <div class="insp-card cat-${ins.category} ${ins.starred?'starred':''}" data-id="${ins.id}">
+        <div class="cat-bar"></div>
+        <div class="insp-star" onclick="toggleStar('${ins.id}')">${ins.starred?'⭐':'☆'}</div>
+        <div class="insp-content">${escapeHtml(ins.content)}</div>
+        <div class="insp-meta">
+          <span class="cat-badge">${meta.icon} ${meta.label}</span>
+          ${(ins.tags||[]).map(t=>`<span class="tag-badge">#${escapeHtml(t)}</span>`).join('')}
+          <span class="insp-time">${timeAgo(ins.createdAt)}</span>
+        </div>
+        <div class="insp-actions">
+          <button class="btn-icon" title="编辑" onclick="editInspiration('${ins.id}')">✏️</button>
+          <button class="btn-icon" title="转为项目" onclick="inspirationToProject('${ins.id}')">📋</button>
+          <button class="btn-icon" title="删除" onclick="deleteInsp('${ins.id}')">🗑</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// --- Projects ---
+function renderProjects() {
+  const grid = document.getElementById('proj-grid');
+  const items = Store.data.projects;
+
+  if (items.length === 0) {
+    grid.innerHTML = `<div class="empty"><div class="emoji">📋</div><h3>还没有项目</h3><p>点击「新建项目」<br>输入你想做的事，AI 帮你拆解</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = items.map(p => {
+    const adoptedSkills = p.skills.filter(s=>s.adopted).length;
+    const adoptedTasks = p.tasks.filter(t=>t.adopted).length;
+    const completedTasks = p.tasks.filter(t=>t.adopted&&t.completed).length;
+    const totalActive = adoptedTasks;
+    const progress = totalActive > 0 ? Math.round(completedTasks/totalActive*100) : 0;
+    const statusLabel = {idea:'构思中',planning:'规划中',active:'进行中',done:'已完成'}[p.status];
+    return `
+      <div class="proj-card s-${p.status}" onclick="openProject('${p.id}')">
+        <div class="proj-title">${escapeHtml(p.title)}</div>
+        <div class="proj-desc">${escapeHtml(p.description||'暂无描述')}</div>
+        <div class="proj-stats">
+          <span>🔧 ${adoptedSkills}/${p.skills.length} 技能</span>
+          <span>✅ ${completedTasks}/${adoptedTasks} 任务</span>
+        </div>
+        <div class="proj-progress"><div class="proj-progress-bar" style="width:${progress}%"></div></div>
+        <div class="proj-footer">
+          <span class="status-badge status-${p.status}">${statusLabel}</span>
+          <span style="font-size:11px;color:var(--text-3)">${timeAgo(p.updatedAt)}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// --- Project Detail ---
+function renderDetail() {
+  const p = Store.getProject(currentProjectId);
+  if (!p) { switchView('projects'); return; }
+  const container = document.getElementById('detail-container');
+
+  const adoptedSkills = p.skills.filter(s=>s.adopted).length;
+  const adoptedTasks = p.tasks.filter(t=>t.adopted).length;
+  const completedTasks = p.tasks.filter(t=>t.adopted&&t.completed).length;
+  const progress = adoptedTasks > 0 ? Math.round(completedTasks/adoptedTasks*100) : 0;
+  const statusLabel = {idea:'构思中',planning:'规划中',active:'进行中',done:'已完成'}[p.status];
+
+  container.innerHTML = `
+    <div class="detail-header">
+      <div class="detail-title-row">
+        <div class="detail-title" contenteditable="true" id="detail-title-input">${escapeHtml(p.title)}</div>
+      </div>
+      <div class="detail-desc" contenteditable="true" id="detail-desc-input" data-placeholder="添加项目描述...">${escapeHtml(p.description||'')}</div>
+      <div class="detail-meta">
+        <div class="status-select">
+          <button class="${p.status==='idea'?'active':''}" onclick="setProjectStatus('idea')">构思中</button>
+          <button class="${p.status==='planning'?'active':''}" onclick="setProjectStatus('planning')">规划中</button>
+          <button class="${p.status==='active'?'active':''}" onclick="setProjectStatus('active')">进行中</button>
+          <button class="${p.status==='done'?'active':''}" onclick="setProjectStatus('done')">已完成</button>
+        </div>
+        <div class="detail-progress">
+          进度 <div class="bar"><div class="bar-fill" style="width:${progress}%"></div></div>
+          <b>${progress}%</b> (${completedTasks}/${adoptedTasks})
+        </div>
+      </div>
+      <div class="detail-actions">
+        <button class="btn btn-primary btn-sm" onclick="runAnalysis()">🤖 AI 分析</button>
+        <button class="btn btn-ghost btn-sm" onclick="copyAnalysisPrompt()">📋 复制提示词给 AI</button>
+        <button class="btn btn-ghost btn-sm" onclick="openImportModal()">📥 导入分析结果</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteProject()" style="color:var(--red)">🗑 删除项目</button>
+      </div>
+    </div>
+
+    <div class="detail-cols">
+      <div class="detail-col">
+        <h3>🔧 需要学习的技能 <span class="count">${p.skills.length} 项 · 已采纳 ${adoptedSkills}</span></h3>
+        <div class="item-list" id="skill-list">
+          ${p.skills.map(s=>renderItem(s,'skill')).join('') || '<div style="color:var(--text-3);font-size:13px;padding:8px 0">点击「AI 分析」自动生成，或手动添加</div>'}
+        </div>
+        <div class="add-item-row">
+          <input type="text" id="new-skill-input" placeholder="添加技能..." onkeydown="if(event.key==='Enter')addManualItem('skill')">
+          <button onclick="addManualItem('skill')">+ 添加</button>
+        </div>
+      </div>
+      <div class="detail-col">
+        <h3>✅ 具体行动步骤 <span class="count">${p.tasks.length} 项 · 已采纳 ${adoptedTasks}</span></h3>
+        <div class="item-list" id="task-list">
+          ${p.tasks.map(t=>renderItem(t,'task')).join('') || '<div style="color:var(--text-3);font-size:13px;padding:8px 0">点击「AI 分析」自动生成，或手动添加</div>'}
+        </div>
+        <div class="add-item-row">
+          <input type="text" id="new-task-input" placeholder="添加任务..." onkeydown="if(event.key==='Enter')addManualItem('task')">
+          <button onclick="addManualItem('task')">+ 添加</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-notes">
+      <h3>📝 备注</h3>
+      <textarea id="detail-notes-input" placeholder="记录项目相关的笔记、想法、链接...">${escapeHtml(p.notes||'')}</textarea>
+    </div>
+  `;
+
+  // Bind editable fields
+  bindEditable('detail-title-input', (val) => Store.updateProject(p.id, {title:val.trim()||'未命名项目'}));
+  bindEditable('detail-desc-input', (val) => Store.updateProject(p.id, {description:val.trim()}));
+  const notesEl = document.getElementById('detail-notes-input');
+  if (notesEl) {
+    notesEl.addEventListener('blur', () => Store.updateProject(p.id, {notes:notesEl.value}));
+  }
+}
+
+function renderItem(item, type) {
+  const isTask = type === 'task';
+  return `
+    <div class="item ${item.adopted?'adopted':''} ${isTask&&item.completed?'completed':''}" data-id="${item.id}">
+      <div class="item-check" onclick="toggleAdopt('${type}','${item.id}')" title="${item.adopted?'已采纳':'点击采纳'}"></div>
+      ${isTask ? `<div class="item-task-check" onclick="event.stopPropagation();toggleComplete('${item.id}')" title="${item.completed?'已完成':'点击完成'}"></div>` : ''}
+      <div class="item-body">
+        <div class="item-name">${escapeHtml(item.name)}</div>
+        ${item.category ? `<div class="item-cat">${escapeHtml(item.category)} · ${item.source==='ai'?'AI建议':'手动添加'}</div>` : `<div class="item-cat">${item.source==='ai'?'AI建议':'手动添加'}</div>`}
+      </div>
+      <div class="item-actions">
+        <button class="item-delete" onclick="deleteItem('${type}','${item.id}')" title="删除">✕</button>
+      </div>
+    </div>`;
+}
+
+function bindEditable(id, cb) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('blur', () => cb(el.innerText.trim()));
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); el.blur(); }
+  });
+}
+
+// ============================================================
+//  ACTIONS
+// ============================================================
+
+// --- Inspiration Actions ---
+function toggleStar(id) {
+  const ins = Store.data.inspirations.find(i=>i.id===id);
+  if (ins) { ins.starred = !ins.starred; Store.save(); renderInspirations(); }
+}
+function deleteInsp(id) {
+  Store.deleteInspiration(id);
+  renderInspirations();
+  showToast('已删除', 'success');
+}
+function editInspiration(id) {
+  const ins = Store.data.inspirations.find(i=>i.id===id);
+  if (!ins) return;
+  openModal(`
+    <div class="modal-header"><h3>编辑灵感</h3><button class="btn-icon" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <textarea class="quick-input" id="edit-insp-content" style="min-height:120px">${escapeHtml(ins.content)}</textarea>
+      <div class="tag-input-row">
+        <input type="text" id="edit-insp-tags" placeholder="标签（逗号分隔）" value="${(ins.tags||[]).join(', ')}">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveInspEdit('${id}')">保存</button>
+    </div>
+  `);
+}
+function saveInspEdit(id) {
+  const content = document.getElementById('edit-insp-content').value.trim();
+  const tagsStr = document.getElementById('edit-insp-tags').value.trim();
+  const tags = tagsStr ? tagsStr.split(/[,，]/).map(t=>t.trim()).filter(Boolean) : [];
+  if (!content) { showToast('内容不能为空', 'error'); return; }
+  Store.updateInspiration(id, {content, tags});
+  closeModal();
+  renderInspirations();
+  showToast('已保存', 'success');
+}
+function inspirationToProject(id) {
+  const ins = Store.data.inspirations.find(i=>i.id===id);
+  if (!ins) return;
+  const proj = Store.addProject(ins.content.slice(0, 50), ins.content);
+  showToast('已转为项目，正在打开...', 'success');
+  setTimeout(() => openProject(proj.id), 400);
+}
+
+// --- Project Actions ---
+function openProject(id) {
+  currentProjectId = id;
+  switchView('detail');
+  renderDetail();
+}
+function setProjectStatus(status) {
+  Store.updateProject(currentProjectId, {status});
+  renderDetail();
+  renderProjects();
+}
+function deleteProject() {
+  if (!confirm('确定删除这个项目？')) return;
+  Store.deleteProject(currentProjectId);
+  switchView('projects');
+  renderProjects();
+  showToast('项目已删除', 'success');
+}
+function runAnalysis() {
+  const p = Store.getProject(currentProjectId);
+  if (!p) return;
+  const result = analyzeProject(p.title + ' ' + (p.description||''));
+
+  // Add items that don't already exist (by name)
+  const existingSkillNames = new Set(p.skills.map(s=>s.name));
+  const existingTaskNames = new Set(p.tasks.map(t=>t.name));
+
+  let added = 0;
+  result.skills.forEach(s => {
+    if (!existingSkillNames.has(s.name)) {
+      Store.addProjectItem(p.id, 'skill', s.name, s.category, 'ai');
+      added++;
+    }
+  });
+  result.tasks.forEach(t => {
+    if (!existingTaskNames.has(t.name)) {
+      Store.addProjectItem(p.id, 'task', t.name, t.category, 'ai');
+      added++;
+    }
+  });
+
+  renderDetail();
+  if (added > 0) {
+    showToast(`AI 分析完成，新增 ${added} 条建议`, 'success');
+  } else {
+    showToast('没有新的建议可添加', 'error');
+  }
+}
+function toggleAdopt(type, itemId) {
+  Store.toggleItemAdopted(currentProjectId, type, itemId);
+  renderDetail();
+}
+function toggleComplete(itemId) {
+  Store.toggleItemCompleted(currentProjectId, itemId);
+  renderDetail();
+}
+function deleteItem(type, itemId) {
+  Store.deleteProjectItem(currentProjectId, type, itemId);
+  renderDetail();
+}
+function addManualItem(type) {
+  const input = document.getElementById('new-'+type+'-input');
+  const name = input.value.trim();
+  if (!name) return;
+  Store.addProjectItem(currentProjectId, type, name, '', 'manual');
+  input.value = '';
+  renderDetail();
+}
+function copyAnalysisPrompt() {
+  const p = Store.getProject(currentProjectId);
+  if (!p) return;
+  const prompt = `我想做：${p.title}\n\n描述：${p.description||'（暂无）'}\n\n请帮我分析：\n1. 需要学习哪些技能或知识？\n2. 有哪些具体的行动步骤可以实现？\n\n请用以下格式回复，方便我导入工作台：\n[技能] 技能名称 (分类)\n[任务] 任务名称 (分类)`;
+  navigator.clipboard.writeText(prompt).then(() => {
+    showToast('提示词已复制，粘贴给 AI 助手即可', 'success');
+  }).catch(() => {
+    showToast('复制失败，请手动复制', 'error');
+  });
+}
+function openImportModal() {
+  openModal(`
+    <div class="modal-header"><h3>导入分析结果</h3><button class="btn-icon" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <textarea class="import-area" id="import-text" placeholder="粘贴 AI 的分析结果...\n\n格式示例：\n[技能] HTML/CSS (前端)\n[技能] JavaScript (前端)\n[任务] 搭建项目框架 (开发)\n[任务] 设计 UI 原型 (设计)"></textarea>
+      <div class="import-hint">
+        每行一条，以 <code>[技能]</code> 或 <code>[任务]</code> 开头<br>
+        分类写在括号内，如 <code>[技能] Python (编程)</code>，也可省略
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="doImport()">导入</button>
+    </div>
+  `);
+}
+function doImport() {
+  const text = document.getElementById('import-text').value;
+  if (!text.trim()) { showToast('请粘贴内容', 'error'); return; }
+  const lines = text.split('\n');
+  let added = 0;
+  lines.forEach(line => {
+    const m = line.match(/^\s*\[(技能|skill|任务|task)\]\s*(.+?)\s*(?:\(([^)]+)\))?\s*$/i);
+    if (m) {
+      const isSkill = /技能|skill/i.test(m[1]);
+      const name = m[2].trim();
+      const cat = m[3] ? m[3].trim() : '';
+      Store.addProjectItem(currentProjectId, isSkill?'skill':'task', name, cat, 'ai');
+      added++;
+    }
+  });
+  closeModal();
+  renderDetail();
+  if (added > 0) showToast(`成功导入 ${added} 条`, 'success');
+  else showToast('未识别到有效内容，请检查格式', 'error');
+}
+
+// --- Quick Input ---
+function openQuickInput() {
+  openModal(`
+    <div class="modal-header"><h3>💡 快速记录灵感</h3><button class="btn-icon" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <textarea class="quick-input" id="quick-insp-input" placeholder="想到什么就写什么..." autofocus></textarea>
+      <div class="tag-input-row">
+        <input type="text" id="quick-insp-tags" placeholder="标签（可选，逗号分隔）">
+      </div>
+      <div class="input-hint">
+        <span class="kbd">Enter</span> 保存 · <span class="kbd">Shift+Enter</span> 换行 · <span class="kbd">Esc</span> 关闭
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveQuickInsp()">保存灵感</button>
+    </div>
+  `);
+  setTimeout(() => {
+    const input = document.getElementById('quick-insp-input');
+    if (input) input.focus();
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveQuickInsp(); }
+      if (e.key === 'Escape') closeModal();
+    });
+  }, 50);
+}
+function saveQuickInsp() {
+  const content = document.getElementById('quick-insp-input').value.trim();
+  const tagsStr = document.getElementById('quick-insp-tags').value.trim();
+  if (!content) { showToast('内容不能为空', 'error'); return; }
+  const tags = tagsStr ? tagsStr.split(/[,，]/).map(t=>t.trim()).filter(Boolean) : [];
+  Store.addInspiration(content, tags);
+  closeModal();
+  if (currentView === 'inspirations') renderInspirations();
+  showToast('灵感已记录 💡', 'success');
+}
+
+// --- New Project ---
+function openNewProjectModal() {
+  openModal(`
+    <div class="modal-header"><h3>📋 新建项目</h3><button class="btn-icon" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>你想做什么？</label>
+        <input type="text" id="new-proj-title" placeholder="例如：搭建一个访谈提纲生成工具" autofocus>
+      </div>
+      <div class="form-group">
+        <label>详细描述（可选）</label>
+        <textarea id="new-proj-desc" placeholder="补充更多细节，帮助 AI 更准确地分析..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="createProject()">创建并分析</button>
+    </div>
+  `);
+  setTimeout(() => {
+    const input = document.getElementById('new-proj-title');
+    if (input) input.focus();
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); createProject(); }
+    });
+  }, 50);
+}
+function createProject() {
+  const title = document.getElementById('new-proj-title').value.trim();
+  const desc = document.getElementById('new-proj-desc').value.trim();
+  if (!title) { showToast('请输入项目名称', 'error'); return; }
+  const proj = Store.addProject(title, desc);
+
+  // Auto-run analysis
+  const result = analyzeProject(title + ' ' + desc);
+  result.skills.forEach(s => Store.addProjectItem(proj.id, 'skill', s.name, s.category, 'ai'));
+  result.tasks.forEach(t => Store.addProjectItem(proj.id, 'task', t.name, t.category, 'ai'));
+
+  Store.updateProject(proj.id, {status:'planning'});
+
+  closeModal();
+  openProject(proj.id);
+  showToast('项目已创建，AI 分析完成 🤖', 'success');
+}
+
+// ============================================================
+//  MODAL & TOAST
+// ============================================================
+function openModal(html) {
+  document.getElementById('modal').innerHTML = html;
+  document.getElementById('modal').classList.add('show');
+  document.getElementById('modal-overlay').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+function showToast(msg, type='') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(8px)';
+    toast.style.transition = 'all .3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 2500);
+}
+
+// ============================================================
+//  UTILS
+// ============================================================
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  const min = Math.floor(diff/60000);
+  const hr = Math.floor(diff/3600000);
+  const day = Math.floor(diff/86400000);
+  if (min < 1) return '刚刚';
+  if (min < 60) return min+'分钟前';
+  if (hr < 24) return hr+'小时前';
+  if (day < 7) return day+'天前';
+  const d = new Date(ts);
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+// ============================================================
+//  EVENTS & INIT
+// ============================================================
+document.querySelectorAll('.nav-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const view = btn.dataset.view;
+    if (view) switchView(view);
+  });
+});
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const view = btn.dataset.view;
+    if (view) switchView(view);
+  });
+});
+
+document.getElementById('insp-search').addEventListener('input', (e) => {
+  inspFilter.search = e.target.value;
+  renderInspirations();
+});
+
+document.getElementById('insp-filters').addEventListener('click', (e) => {
+  if (e.target.classList.contains('chip')) {
+    document.querySelectorAll('#insp-filters .chip').forEach(c => c.classList.remove('active'));
+    e.target.classList.add('active');
+    inspFilter.cat = e.target.dataset.cat;
+    renderInspirations();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+    e.preventDefault();
+    openQuickInput();
+  }
+  if (e.key === 'Escape') closeModal();
+});
+
+// Init
+Store.init();
+renderInspirations();
+Store.updateStats();
+Sync.init();
+Sync.renderUI();
+
+// 切回页面时立即同步一次，避免错过手机端新增
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && Sync._ready && !Sync._syncing) Sync.pullInBackground();
+});
+
+// PWA: register service worker (silent) + 强制更新到最新版
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      // 每次加载都主动检查 SW 更新，确保手机/电脑能拿到最新代码（network-first 已保证页面内容最新）
+      reg.update();
+      // 新版 SW 接管后自动刷新一次，避免用户还停留在旧版本逻辑
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+    }).catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
