@@ -1023,7 +1023,7 @@ var Sync = {
     if (el) {
       const dotCls = {connected:'ok', syncing:'busy', error:'err'}[this.status] || '';
       const texts = {
-        unconfigured: '未配置。填写 Supabase 项目地址和 anon key 并连接后，手机和电脑自动同步。',
+        unconfigured: '未配置。粘贴 GitHub 令牌并点「保存并连接」后，手机和电脑自动同步。',
         connecting: '正在连接同步服务...',
         connected: '已连接，数据自动同步中',
         syncing: '正在同步数据...',
@@ -1040,7 +1040,7 @@ var Sync = {
     if (act) {
       if (this.supabaseUrl) {
         const builtin = this.supabaseUrl === 'https://lfbnmalkcaceacqgojkt.supabase.co';
-        act.textContent = '当前同步地址：' + this.supabaseUrl;
+        act.textContent = '当前数据仓库：' + this.supabaseUrl;
         if (builtin) {
           act.textContent += '（⚠️ 内置公共演示库，多人共用同一份数据，强烈建议按下方教程创建自己的 Supabase 项目）';
           act.style.color = '#b45309';
@@ -1120,7 +1120,7 @@ function copySql() {
   );
 }
 
-const APP_VERSION_NUM = '14'; // 当前代码版本，显示在诊断和同步状态栏里便于定位是否加载了最新版
+const APP_VERSION_NUM = '15'; // 当前代码版本，显示在诊断和同步状态栏里便于定位是否加载了最新版
 const APP_VERSION = 'v' + APP_VERSION_NUM;
 
 async function diagnoseSync() {
@@ -1135,7 +1135,7 @@ async function diagnoseSync() {
   el.textContent += `\n\n📦 本地数据: ${localInspirations} 条灵感, ${localProjects} 个项目`;
 
   // 2. 测试连接（拉取云端）
-  el.textContent += '\n\n🌐 测试连接: ' + Sync.supabaseUrl;
+  el.textContent += '\n\n🐙 数据仓库: ' + Sync.supabaseUrl;
   try {
     const t0 = Date.now();
     const remote = await Sync.pull();
@@ -1973,6 +1973,90 @@ document.addEventListener('keydown', (e) => {
   }
   if (e.key === 'Escape') closeModal();
 });
+
+
+// ===== v15: 同步后端改为 GitHub 私有仓库（覆盖 Supabase 实现）=====
+Sync.ghToken = localStorage.getItem('sync_gh_token') || '';
+Sync.ghRepo = localStorage.getItem('sync_gh_repo') || 'ziyouji319/workbench-data';
+Sync.ghPath = 'sync/workbench.json';
+Sync.supabaseUrl = Sync.ghRepo;
+Sync.supabaseKey = '';
+Sync._lastPushed = null;
+Sync._ghUrl = function(){ return 'https://api.github.com/repos/' + this.ghRepo + '/contents/' + this.ghPath; };
+Sync._ghHeaders = function(){ return { 'Authorization': 'Bearer ' + this.ghToken, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' }; };
+Sync.init = function(){ if (this.ghToken && this.ghRepo) { this.connect(); } else { this.setStatus('unconfigured'); } };
+Sync._describeError = function(e){
+  var m = String((e && (e.message || e)) || '');
+  if (/401|bad credentials|requires authentication/i.test(m)) return '令牌无效或已过期，请重新生成并粘贴。';
+  if (/403|rate limit/i.test(m)) return '访问被拒绝：令牌权限不足（需要 Contents 读写），或请求过于频繁。';
+  if (/404/.test(m)) return '找不到仓库或文件：请确认仓库名正确，且令牌有该私有仓库权限。';
+  if (/network|fetch|Failed to fetch/i.test(m)) return '网络异常：无法访问 GitHub，请检查网络后重试。';
+  if (/timeout|超时/i.test(m)) return '请求超时：GitHub 无响应，请稍后重试。';
+  return '同步失败：' + (m || '未知原因');
+};
+Sync.pull = async function(){
+  var res;
+  try { res = await fetch(this._ghUrl() + '?ref=main&t=' + Date.now(), { method: 'GET', headers: this._ghHeaders(), cache: 'no-store' }); }
+  catch (e) { throw new Error('network: ' + e.message); }
+  if (res.status === 401) throw new Error('401 Bad credentials');
+  if (res.status === 403) throw new Error('403 Forbidden');
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  var j = await res.json();
+  if (!j || !j.content) return null;
+  try {
+    var bin = atob(String(j.content).replace(/\s/g, ''));
+    var json = '';
+    try { json = decodeURIComponent(escape(bin)); } catch (e2) { json = bin; }
+    return JSON.parse(json);
+  } catch (e) { return null; }
+};
+Sync.push = async function(){
+  if (!this._ready) return;
+  var json = JSON.stringify(Store.data);
+  if (this._lastPushed === json) return;
+  var sha = null;
+  var head;
+  try { head = await fetch(this._ghUrl() + '?ref=main&t=' + Date.now(), { method: 'GET', headers: this._ghHeaders(), cache: 'no-store' }); }
+  catch (e) { throw new Error('network: ' + e.message); }
+  if (head.status === 401) throw new Error('401 Bad credentials');
+  if (head.ok) { try { var hj = await head.json(); sha = hj.sha || null; } catch (e) {} }
+  else if (head.status !== 404) throw new Error('HTTP ' + head.status);
+  var body = { message: '同步工作台数据 ' + new Date().toLocaleString(), content: btoa(unescape(encodeURIComponent(json))), branch: 'main' };
+  if (sha) body.sha = sha;
+  var res;
+  try { res = await fetch(this._ghUrl(), { method: 'PUT', headers: this._ghHeaders(), body: JSON.stringify(body) }); }
+  catch (e) { throw new Error('network: ' + e.message); }
+  if (res.status === 401) throw new Error('401 Bad credentials');
+  if (!res.ok) {
+    var msg = '';
+    try { var ej = await res.json(); msg = ej.message || ''; } catch (e) {}
+    throw new Error('HTTP ' + res.status + (msg ? ' ' + msg : ''));
+  }
+  this._lastPushed = json;
+};
+function saveSyncConfig(){
+  var t = (document.getElementById('sync-secret').value || '').trim();
+  var r = (document.getElementById('sync-worker').value || '').trim() || 'ziyouji319/workbench-data';
+  if (!t) { showToast('请先把 GitHub 令牌粘贴到第二个输入框', 'error'); return; }
+  if (t.length < 20) { showToast('令牌看起来不完整，请重新复制一次', 'error'); return; }
+  if (!/^[\w.-]+\/[\w.-]+$/.test(r)) { showToast('仓库名格式应为 用户名/仓库名', 'error'); return; }
+  Sync.ghToken = t; Sync.ghRepo = r; Sync._lastPushed = null; Sync.supabaseUrl = r;
+  localStorage.setItem('sync_gh_token', t);
+  localStorage.setItem('sync_gh_repo', r);
+  Sync.connect();
+}
+(function(){
+  var u = document.getElementById('sync-worker');
+  if (u) { u.placeholder = 'ziyouji319/workbench-data'; if (!u.value) u.value = Sync.ghRepo; }
+  var k = document.getElementById('sync-secret');
+  if (k) { k.type = 'password'; k.placeholder = 'ghp_... 或 github_pat_...（一长串）'; }
+  var labels = document.querySelectorAll('#view-sync label');
+  if (labels[0]) labels[0].textContent = 'GitHub 私有数据仓库（用户名/仓库名）';
+  if (labels[1]) labels[1].textContent = 'GitHub 同步令牌（Token，只保存在你自己的设备里）';
+  var g = document.querySelector('#view-sync .guide');
+  if (g) g.innerHTML = '<summary class="guide-title">📖 第一次使用？3 步创建同步令牌（只需做一次）</summary><ol class="guide-steps"><li><strong>打开令牌页面：</strong>点 <a href="https://github.com/settings/tokens/new?scopes=repo&description=workbench-sync" target="_blank">这里创建令牌</a>（已预勾选所需权限）。</li><li><strong>有效期：</strong>Expiration 建议选 <strong>No expiration</strong>（不过期），或 1 年。</li><li><strong>生成并复制：</strong>拉到底点 <strong>Generate token</strong>，复制 ghp_ 开头的一整串，粘贴到上方第二个输入框，点「保存并连接」。</li></ol><p class="guide-note">💡 手机和电脑粘贴<strong>同一个令牌</strong>即可互相同步。令牌只保存在你自己的浏览器里；数据保存在你的<strong>私有仓库</strong> workbench-data 里，不会公开。</p>';
+})();
 
 // Init
 Store.init();
